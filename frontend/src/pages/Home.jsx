@@ -13,7 +13,8 @@ import {
     Snackbar,
     TextField,
     Typography,
-    Divider
+    Divider,
+    Stack
 } from "@mui/material";
 import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import React, { useState, useRef } from "react";
@@ -27,6 +28,8 @@ import {
     changeStateFalse,
 } from "../features/curriculumSlice";
 import { useEffect } from "react";
+import { imageDb } from "../config/firebaseConfig";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function Home() {
     const dispatch = useDispatch();
@@ -39,6 +42,10 @@ export default function Home() {
 
     const fileInput = useRef(null);
 
+    const [image, setImage] = useState("");
+
+    const storage = getStorage();
+
     const [aboutMeData, setAboutMeData] = useState({
         nombre: "",
         apellidoPaterno: "",
@@ -48,7 +55,7 @@ export default function Home() {
         direccion: "",
         email: "",
         numeroTelefono: "",
-        informacionAdicional: ""
+        informacionAdicional: "",
     });
 
     const [certificationData, setCertificationData] = useState({
@@ -94,7 +101,7 @@ export default function Home() {
         dispatch(fetchCurriculums());
     }, [dispatch]);
 
-    const handleClick = (e) => {
+    const handleClick = async (e) => {
         e.preventDefault();
         console.log(aboutMeData);
         console.log(certificationData);
@@ -111,6 +118,9 @@ export default function Home() {
                 redes: [redesData],
             })
         );
+
+        await handleUploadImage(aboutMeData.nombre);
+
         handleClickSnackbar();
         setAboutMeData({ /* reset values */ });
         setCertificationData({ /* reset values */ });
@@ -118,13 +128,31 @@ export default function Home() {
         setEducationData({ /* reset values */ });
         setInformationData({});
         setRedesData({});
+        setCertifications([{ titulo: "", descripcion: "" }]);
+        setExperiences([{
+            titulo: "",
+            compania: "",
+            ubicacion: "",
+            fechaInicio: "",
+            fechaTermino: "",
+            descripcion: ""
+        }]);
         setShowTable(true);
     };
 
-    const updateCurriculum = (item) => {
-        console.log(item.experience);
+    const updateCurriculum = async (item) => {
         setId(item._id);
         setAboutMeData(item.aboutMe);
+        try {
+            const fileRef = ref(storage, "images/" + item.aboutMe.nombre + ".jpg");
+            const url = await getDownloadURL(fileRef);
+            console.log(url);
+            setPreviewUrl(url);
+        } catch (error) {
+            console.error(error);
+            setPreviewUrl(null);
+        }
+
         setCertificationData(item.certifications);
         setExperienceData(item.experience);
         setEducationData(item.education[0]);
@@ -135,6 +163,7 @@ export default function Home() {
         setCertifications(item.certifications);
         setExperiences(item.experience);
     };
+
 
     const updateForm = () => {
         dispatch(modifyCurriculum({
@@ -155,6 +184,15 @@ export default function Home() {
         setEducationData({ /* reset values */ });
         setInformationData({});
         setRedesData({});
+        setCertifications([{ titulo: "", descripcion: "" }]);
+        setExperiences([{
+            titulo: "",
+            compania: "",
+            ubicacion: "",
+            fechaInicio: "",
+            fechaTermino: "",
+            descripcion: ""
+        }]);
         setShowTable(true);
         console.log(certifications);
     };
@@ -173,19 +211,39 @@ export default function Home() {
         setOpen(false);
     };
 
-    const handleChangeImage = (event) => {
+    const handleChangeImage = async (event) => {
         const file = event.target.files[0];
+        setImage(event.target.files[0]);
         const reader = new FileReader();
 
         reader.onloadend = () => {
             const arrayBuffer = reader.result;
-            setAboutMeData({ ...aboutMeData, fotografia: arrayBuffer });
+            setAboutMeData({
+                ...aboutMeData,
+                fotografia: arrayBuffer,
+            });
         };
 
         reader.readAsArrayBuffer(file);
         setPreviewUrl(URL.createObjectURL(file));
-        // setAboutMeData({ ...aboutMeData, fotografia: event.target.files[0] });
-        // setPreviewUrl(URL.createObjectURL(event.target.files[0]));
+    };
+
+    const handleUploadImage = async (name) => {
+        try {
+            const fileRef = ref(storage, "images/" + name + ".jpg");
+
+            const response = await uploadBytes(fileRef, image);
+            const imageUrl = await response.ref.getDownloadURL();
+
+            setPreviewUrl(imageUrl);
+
+            // Guarda la URL de la imagen en la base de datos
+            // (Modifica esta parte según tu lógica de guardado en la base de datos)
+            await dispatch(updateCurriculum({ ...aboutMeData }));
+        } catch (error) {
+            console.error(error);
+            // Maneja el error de la subida
+        }
     };
 
     const handleClickImage = () => {
@@ -243,7 +301,7 @@ export default function Home() {
         setExperiences(newExperiences);
     };
 
-    console.log(aboutMeData.fotografia);
+    console.log(previewUrl);
 
     return (
         <>
@@ -271,12 +329,32 @@ export default function Home() {
                             size="small"
                             onClick={() => {
                                 setShowTable(false)
-                                setAboutMeData({ /* reset values */ });
+                                setAboutMeData({
+                                    nombre: "",
+                                    apellidoPaterno: "",
+                                    apellidoMaterno: "",
+                                    fotografia: null, // Asegúrate de restablecer la fotografía a null
+                                    designacion: "",
+                                    direccion: "",
+                                    email: "",
+                                    numeroTelefono: "",
+                                    informacionAdicional: "",
+                                });
+                                setPreviewUrl(null);
                                 setCertificationData({ /* reset values */ });
                                 setExperienceData({ /* reset values */ });
                                 setEducationData({ /* reset values */ });
                                 setInformationData({});
                                 setRedesData({});
+                                setCertifications([{ titulo: "", descripcion: "" }]);
+                                setExperiences([{
+                                    titulo: "",
+                                    compania: "",
+                                    ubicacion: "",
+                                    fechaInicio: "",
+                                    fechaTermino: "",
+                                    descripcion: ""
+                                }]);
                                 dispatch(changeStateFalse());
                             }}
                         >
@@ -383,7 +461,6 @@ export default function Home() {
                                         onChange={(event) => {
                                             handleChangeImage(event);
                                         }}
-                                        disabled={updateState}
                                     />
 
                                     <Box
@@ -396,17 +473,19 @@ export default function Home() {
                                     >
 
                                     </Box>
-                                    <Avatar
-                                        sx={{
-                                            width: "120px",
-                                            height: "120px",
-                                            cursor: updateState ? "default" : "pointer",
-                                            mt: "10px",
-                                            mb: "15px"
-                                        }}
-                                        src={previewUrl || aboutMeData?.fotografia || ""}
-                                        onClick={handleClickImage}
-                                    />
+                                    <Stack sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
+                                        <Avatar
+                                            sx={{
+                                                width: "120px",
+                                                height: "120px",
+                                                mt: "10px",
+                                                mb: "15px"
+                                            }}
+                                            src={previewUrl || ""}
+                                        />
+                                        <Button sx={{ height: "30px", ml: "10px" }} variant="contained" onClick={handleClickImage}>{previewUrl ? "Cambiar imagen" : "Subir imagen"}</Button>
+                                    </Stack>
+
 
                                     <TextField
                                         sx={{ color: "white", mr: "10px", mb: "10px" }}
