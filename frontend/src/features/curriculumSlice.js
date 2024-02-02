@@ -20,7 +20,25 @@ export const fetchCurriculums = createAsyncThunk(
 export const addCurriculum = createAsyncThunk(
     "curriculum/addCurriculum",
     async (data) => {
-        const response = await axios.post("http://localhost:8000/api/curriculums", data);
+        const formData = new FormData();
+
+        if (data.aboutMe.fotografia) {
+            formData.append('fotografia', new Blob([data.aboutMe.fotografia]), 'file.jpg');
+        }
+
+        formData.append('aboutMe', JSON.stringify(data.aboutMe));
+        formData.append('certifications', JSON.stringify(data.certifications));
+        formData.append('experience', JSON.stringify(data.experience));
+        formData.append('education', JSON.stringify(data.education));
+        formData.append('information', JSON.stringify(data.information));
+        formData.append('redes', JSON.stringify(data.redes));
+
+        const response = await axios.post("http://localhost:8000/api/curriculums", formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        // const response = await axios.post("http://localhost:8000/api/curriculums", data);
         return response.data.response;
     }
 );

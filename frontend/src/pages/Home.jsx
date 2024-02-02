@@ -7,14 +7,16 @@ import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import {
     Alert,
+    Avatar,
     Box,
     Button,
     Snackbar,
     TextField,
     Typography,
+    Divider
 } from "@mui/material";
 import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
-import { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
     fetchCurriculums,
@@ -33,11 +35,15 @@ export default function Home() {
     );
     const [id, setId] = useState("");
 
+    const [previewUrl, setPreviewUrl] = useState(null);
+
+    const fileInput = useRef(null);
+
     const [aboutMeData, setAboutMeData] = useState({
         nombre: "",
         apellidoPaterno: "",
         apellidoMaterno: "",
-        fotografia: "",
+        fotografia: null,
         designacion: "",
         direccion: "",
         email: "",
@@ -68,6 +74,20 @@ export default function Home() {
         descripcion: ""
     });
 
+    const [informationData, setInformationData] = useState({
+        web: "",
+        numeroContacto: "",
+        ciudad: "",
+    });
+
+    const [redesData, setRedesData] = useState({
+        facebook: "",
+        linkedin: "",
+        insta: "",
+        twitter: "",
+        github: "",
+    })
+
     const [showTable, setShowTable] = useState(true);
 
     useEffect(() => {
@@ -84,9 +104,11 @@ export default function Home() {
         dispatch(
             addCurriculum({
                 aboutMe: aboutMeData,
-                certifications: [certificationData],
-                experience: [experienceData],
-                education: [educationData]
+                certifications: certifications,
+                experience: experiences,
+                education: [educationData],
+                information: [informationData],
+                redes: [redesData],
             })
         );
         handleClickSnackbar();
@@ -94,26 +116,35 @@ export default function Home() {
         setCertificationData({ /* reset values */ });
         setExperienceData({ /* reset values */ });
         setEducationData({ /* reset values */ });
+        setInformationData({});
+        setRedesData({});
         setShowTable(true);
     };
 
     const updateCurriculum = (item) => {
+        console.log(item.experience);
         setId(item._id);
         setAboutMeData(item.aboutMe);
-        setCertificationData(item.certifications[0]);
-        setExperienceData(item.experience[0]);
+        setCertificationData(item.certifications);
+        setExperienceData(item.experience);
         setEducationData(item.education[0]);
+        setInformationData(item.information[0]);
+        setRedesData(item.redes[0]);
         setShowTable(false);
         dispatch(changeStateTrue());
+        setCertifications(item.certifications);
+        setExperiences(item.experience);
     };
 
     const updateForm = () => {
         dispatch(modifyCurriculum({
             id: id,
             aboutMe: aboutMeData,
-            certifications: [certificationData],
-            experience: [experienceData],
-            education: [educationData]
+            certifications: certifications,
+            experience: experiences,
+            education: [educationData],
+            information: [informationData],
+            redes: [redesData],
         }));
         dispatch(changeStateFalse());
         handleClickSnackbar();
@@ -122,7 +153,10 @@ export default function Home() {
         setCertificationData({ /* reset values */ });
         setExperienceData({ /* reset values */ });
         setEducationData({ /* reset values */ });
+        setInformationData({});
+        setRedesData({});
         setShowTable(true);
+        console.log(certifications);
     };
 
 
@@ -138,6 +172,78 @@ export default function Home() {
     const handleClose = () => {
         setOpen(false);
     };
+
+    const handleChangeImage = (event) => {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+
+        reader.onloadend = () => {
+            const arrayBuffer = reader.result;
+            setAboutMeData({ ...aboutMeData, fotografia: arrayBuffer });
+        };
+
+        reader.readAsArrayBuffer(file);
+        setPreviewUrl(URL.createObjectURL(file));
+        // setAboutMeData({ ...aboutMeData, fotografia: event.target.files[0] });
+        // setPreviewUrl(URL.createObjectURL(event.target.files[0]));
+    };
+
+    const handleClickImage = () => {
+        fileInput.current.click();
+    };
+
+    const [certifications, setCertifications] = useState([{ titulo: "", descripcion: "" }]);
+
+    const handleAddCertification = () => {
+        setCertifications([...certifications, { titulo: "", descripcion: "" }]);
+    };
+
+    const handleCertificationChange = (index, field, value) => {
+        const newCertifications = [...certifications];
+        newCertifications[index][field] = value;
+        setCertifications(newCertifications);
+    };
+
+    const handleRemoveCertification = (index) => {
+        const newCertifications = [...certifications];
+        newCertifications.splice(index, 1);
+        setCertifications(newCertifications);
+    };
+
+
+    const [experiences, setExperiences] = useState([{
+        titulo: "",
+        compania: "",
+        ubicacion: "",
+        fechaInicio: "",
+        fechaTermino: "",
+        descripcion: ""
+    }]);
+
+    const handleExperienceChange = (index, field, value) => {
+        const newExperiences = [...experiences];
+        newExperiences[index][field] = value;
+        setExperiences(newExperiences);
+    };
+
+    const handleAddExperience = () => {
+        setExperiences([...experiences, {
+            titulo: "",
+            compania: "",
+            ubicacion: "",
+            fechaInicio: "",
+            fechaTermino: "",
+            descripcion: ""
+        }]);
+    };
+
+    const handleRemoveExperience = (index) => {
+        const newExperiences = [...experiences];
+        newExperiences.splice(index, 1);
+        setExperiences(newExperiences);
+    };
+
+    console.log(aboutMeData.fotografia);
 
     return (
         <>
@@ -169,6 +275,8 @@ export default function Home() {
                                 setCertificationData({ /* reset values */ });
                                 setExperienceData({ /* reset values */ });
                                 setEducationData({ /* reset values */ });
+                                setInformationData({});
+                                setRedesData({});
                                 dispatch(changeStateFalse());
                             }}
                         >
@@ -265,12 +373,47 @@ export default function Home() {
                                         Sobre mi:
                                     </Typography>
 
+                                    <input
+                                        ref={fileInput}
+                                        type="file"
+                                        accept="image/*"
+                                        style={{ display: "none" }}
+                                        id="raised-button-file"
+                                        multiple
+                                        onChange={(event) => {
+                                            handleChangeImage(event);
+                                        }}
+                                        disabled={updateState}
+                                    />
+
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            flexDirection: "row",
+                                            justifyContent: "flex-end",
+                                            alignItems: "center"
+                                        }}
+                                    >
+
+                                    </Box>
+                                    <Avatar
+                                        sx={{
+                                            width: "120px",
+                                            height: "120px",
+                                            cursor: updateState ? "default" : "pointer",
+                                            mt: "10px",
+                                            mb: "15px"
+                                        }}
+                                        src={previewUrl || aboutMeData?.fotografia || ""}
+                                        onClick={handleClickImage}
+                                    />
+
                                     <TextField
                                         sx={{ color: "white", mr: "10px", mb: "10px" }}
                                         variant="outlined"
                                         size="small"
                                         placeholder="Nombre"
-                                        value={aboutMeData.nombre}
+                                        value={aboutMeData?.nombre}
                                         onChange={(e) => {
                                             setAboutMeData({ ...aboutMeData, nombre: e.target.value });
                                         }}
@@ -280,7 +423,7 @@ export default function Home() {
                                         variant="outlined"
                                         size="small"
                                         placeholder="Apellido paterno"
-                                        value={aboutMeData.apellidoPaterno}
+                                        value={aboutMeData?.apellidoPaterno}
                                         onChange={(e) => {
                                             setAboutMeData({ ...aboutMeData, apellidoPaterno: e.target.value });
                                         }}
@@ -290,7 +433,7 @@ export default function Home() {
                                         variant="outlined"
                                         size="small"
                                         placeholder="Apellido materno"
-                                        value={aboutMeData.apellidoMaterno}
+                                        value={aboutMeData?.apellidoMaterno}
                                         onChange={(e) => {
                                             setAboutMeData({ ...aboutMeData, apellidoMaterno: e.target.value });
                                         }}
@@ -299,18 +442,8 @@ export default function Home() {
                                         sx={{ color: "white", mr: "10px" }}
                                         variant="outlined"
                                         size="small"
-                                        placeholder="Fotografia"
-                                        value={aboutMeData.fotografia}
-                                        onChange={(e) => {
-                                            setAboutMeData({ ...aboutMeData, fotografia: e.target.value });
-                                        }}
-                                    />
-                                    <TextField
-                                        sx={{ color: "white", mr: "10px" }}
-                                        variant="outlined"
-                                        size="small"
                                         placeholder="Puesto"
-                                        value={aboutMeData.designacion}
+                                        value={aboutMeData?.designacion}
                                         onChange={(e) => {
                                             setAboutMeData({ ...aboutMeData, designacion: e.target.value });
                                         }}
@@ -320,7 +453,7 @@ export default function Home() {
                                         variant="outlined"
                                         size="small"
                                         placeholder="Direccion"
-                                        value={aboutMeData.direccion}
+                                        value={aboutMeData?.direccion}
                                         onChange={(e) => {
                                             setAboutMeData({ ...aboutMeData, direccion: e.target.value });
                                         }}
@@ -330,7 +463,7 @@ export default function Home() {
                                         variant="outlined"
                                         size="small"
                                         placeholder="Email"
-                                        value={aboutMeData.email}
+                                        value={aboutMeData?.email}
                                         onChange={(e) => {
                                             setAboutMeData({ ...aboutMeData, email: e.target.value });
                                         }}
@@ -340,17 +473,17 @@ export default function Home() {
                                         variant="outlined"
                                         size="small"
                                         placeholder="Numero de telefono"
-                                        value={aboutMeData.numeroTelefono}
+                                        value={aboutMeData?.numeroTelefono}
                                         onChange={(e) => {
                                             setAboutMeData({ ...aboutMeData, numeroTelefono: e.target.value });
                                         }}
                                     />
                                     <TextField
-                                        sx={{ color: "white", mr: "10px", mt: "10px" }}
+                                        sx={{ color: "white", mr: "10px", mt: "1px" }}
                                         variant="outlined"
                                         size="small"
                                         placeholder="Datos adicionales"
-                                        value={aboutMeData.informacionAdicional}
+                                        value={aboutMeData?.informacionAdicional}
                                         onChange={(e) => {
                                             setAboutMeData({ ...aboutMeData, informacionAdicional: e.target.value });
                                         }}
@@ -358,100 +491,98 @@ export default function Home() {
                                 </Box>
 
                                 <Box mt="1rem">
-                                    <Typography sx={{ color: "black", fontSize: "20px" }}>
+                                    <Typography sx={{ color: "black", fontSize: "20px", mb: "10px" }}>
                                         Certificaciones:
                                     </Typography>
 
-                                    <TextField
-                                        sx={{ color: "white", mr: "10px" }}
-                                        variant="outlined"
-                                        size="small"
-                                        placeholder="Titulo"
-                                        value={certificationData.titulo}
-                                        onChange={(e) => {
-                                            setCertificationData({ ...certificationData, titulo: e.target.value });
-                                        }}
-                                    />
-                                    <TextField
-                                        variant="outlined"
-                                        size="small"
-                                        placeholder="Descripcion"
-                                        value={certificationData.descripcion}
-                                        onChange={(e) => {
-                                            setCertificationData({ ...certificationData, descripcion: e.target.value });
-                                        }}
-                                    />
+                                    {certifications.map((certification, index) => (
+                                        <div key={index}>
+                                            <TextField
+                                                sx={{ color: "white", mr: "10px", mb: "12px" }}
+                                                variant="outlined"
+                                                size="small"
+                                                placeholder="Titulo"
+                                                value={certification?.titulo}
+                                                onChange={(e) => handleCertificationChange(index, 'titulo', e.target.value)}
+                                            />
+                                            <TextField
+                                                variant="outlined"
+                                                size="small"
+                                                placeholder="Descripcion"
+                                                value={certification?.descripcion}
+                                                onChange={(e) => handleCertificationChange(index, 'descripcion', e.target.value)}
+                                            />
+                                            {certifications?.length > 1 && <Button onClick={() => handleRemoveCertification(index)} color="error" variant="contained" sx={{ ml: "1rem" }}>Eliminar</Button>}
+                                            {index !== certifications?.length - 1 && <Divider sx={{ borderWidth: "1px", borderColor: "#445473", mb: "20px" }} />}
+                                        </div>
+                                    ))}
+                                    <Button onClick={handleAddCertification} variant="contained">Agregar mas</Button>
                                 </Box>
 
                                 <Box mt="1rem">
-                                    <Typography sx={{ color: "black", fontSize: "20px" }}>
+                                    <Typography sx={{ color: "black", fontSize: "20px", mb: "10px" }}>
                                         Experiencia:
                                     </Typography>
 
-                                    <TextField
-                                        sx={{ color: "white", mr: "10px", mb: "10px" }}
-                                        variant="outlined"
-                                        size="small"
-                                        placeholder="Titulo"
-                                        value={experienceData.titulo}
-                                        onChange={(e) => {
-                                            setExperienceData({ ...experienceData, titulo: e.target.value });
-                                        }}
-                                    />
-                                    <TextField
-                                        sx={{ color: "white", mr: "10px" }}
-                                        variant="outlined"
-                                        size="small"
-                                        placeholder="Compañia"
-                                        value={experienceData.compania}
-                                        onChange={(e) => {
-                                            setExperienceData({ ...experienceData, compania: e.target.value });
-                                        }}
-                                    />
-                                    <TextField
-                                        sx={{ color: "white", mr: "10px" }}
-                                        variant="outlined"
-                                        size="small"
-                                        placeholder="Ubicacion"
-                                        value={experienceData.ubicacion}
-                                        onChange={(e) => {
-                                            setExperienceData({ ...experienceData, ubicacion: e.target.value });
-                                        }}
-                                    />
-                                    <TextField
-                                        sx={{ color: "white", mr: "10px" }}
-                                        variant="outlined"
-                                        size="small"
-                                        placeholder="Fecha de inicio"
-                                        value={experienceData.fechaInicio}
-                                        onChange={(e) => {
-                                            setExperienceData({ ...experienceData, fechaInicio: e.target.value });
-                                        }}
-                                    />
-                                    <TextField
-                                        sx={{ color: "white", mr: "10px" }}
-                                        variant="outlined"
-                                        size="small"
-                                        placeholder="Fecha de finalizacion"
-                                        value={experienceData.fechaTermino}
-                                        onChange={(e) => {
-                                            setExperienceData({ ...experienceData, fechaTermino: e.target.value });
-                                        }}
-                                    />
-                                    <TextField
-                                        sx={{ color: "white", mr: "10px" }}
-                                        variant="outlined"
-                                        size="small"
-                                        placeholder="Descripcion"
-                                        value={experienceData.descripcion}
-                                        onChange={(e) => {
-                                            setExperienceData({ ...experienceData, descripcion: e.target.value });
-                                        }}
-                                    />
+                                    {experiences.map((experience, index) => (
+                                        <div key={index}>
+                                            <TextField
+                                                sx={{ color: "white", mr: "10px", mb: "10px" }}
+                                                variant="outlined"
+                                                size="small"
+                                                placeholder="Titulo"
+                                                value={experience?.titulo}
+                                                onChange={(e) => handleExperienceChange(index, 'titulo', e.target.value)}
+                                            />
+                                            <TextField
+                                                sx={{ color: "white", mr: "10px", mb: "10px" }}
+                                                variant="outlined"
+                                                size="small"
+                                                placeholder="Compañia"
+                                                value={experience?.compania}
+                                                onChange={(e) => handleExperienceChange(index, 'compania', e.target.value)}
+                                            />
+                                            <TextField
+                                                sx={{ color: "white", mr: "10px", mb: "10px" }}
+                                                variant="outlined"
+                                                size="small"
+                                                placeholder="Ubicación"
+                                                value={experience?.ubicacion}
+                                                onChange={(e) => handleExperienceChange(index, 'ubicacion', e.target.value)}
+                                            />
+                                            <TextField
+                                                sx={{ color: "white", mr: "10px", mb: "10px" }}
+                                                variant="outlined"
+                                                size="small"
+                                                placeholder="Fecha de inicio"
+                                                value={experience?.fechaInicio}
+                                                onChange={(e) => handleExperienceChange(index, 'fechaInicio', e.target.value)}
+                                            />
+                                            <TextField
+                                                sx={{ color: "white", mr: "10px", mb: "10px" }}
+                                                variant="outlined"
+                                                size="small"
+                                                placeholder="Fecha de terminación"
+                                                value={experience?.fechaTermino}
+                                                onChange={(e) => handleExperienceChange(index, 'fechaTermino', e.target.value)}
+                                            />
+                                            <TextField
+                                                sx={{ color: "white", mr: "10px", mb: "10px" }}
+                                                variant="outlined"
+                                                size="small"
+                                                placeholder="Descripción"
+                                                value={experience?.descripcion}
+                                                onChange={(e) => handleExperienceChange(index, 'descripcion', e.target.value)}
+                                            />
+                                            {experiences?.length > 1 && <Button onClick={() => handleRemoveExperience(index)} color="error" variant="contained">Eliminar</Button>}
+                                            {index !== experiences?.length - 1 && <Divider sx={{ borderWidth: "1px", borderColor: "#445473", mb: "20px" }} />}
+                                        </div>
+                                    ))}
+                                    <Button onClick={handleAddExperience} variant="contained">Agregar más</Button>
                                 </Box>
 
                                 <Box mt="1rem">
-                                    <Typography sx={{ color: "black", fontSize: "20px" }}>
+                                    <Typography sx={{ color: "black", fontSize: "20px", mb: "10px" }}>
                                         Educacion:
                                     </Typography>
 
@@ -460,7 +591,7 @@ export default function Home() {
                                         variant="outlined"
                                         size="small"
                                         placeholder="Escuela"
-                                        value={educationData.escuela}
+                                        value={educationData?.escuela}
                                         onChange={(e) => {
                                             setEducationData({ ...educationData, escuela: e.target.value });
                                         }}
@@ -470,7 +601,7 @@ export default function Home() {
                                         variant="outlined"
                                         size="small"
                                         placeholder="Certificado"
-                                        value={educationData.certificado}
+                                        value={educationData?.certificado}
                                         onChange={(e) => {
                                             setEducationData({ ...educationData, certificado: e.target.value });
                                         }}
@@ -480,7 +611,7 @@ export default function Home() {
                                         variant="outlined"
                                         size="small"
                                         placeholder="Ciudad"
-                                        value={educationData.ciudad}
+                                        value={educationData?.ciudad}
                                         onChange={(e) => {
                                             setEducationData({ ...educationData, ciudad: e.target.value });
                                         }}
@@ -490,7 +621,7 @@ export default function Home() {
                                         variant="outlined"
                                         size="small"
                                         placeholder="Fecha de inicio"
-                                        value={educationData.fechaInicio}
+                                        value={educationData?.fechaInicio}
                                         onChange={(e) => {
                                             setEducationData({ ...educationData, fechaInicio: e.target.value });
                                         }}
@@ -500,7 +631,7 @@ export default function Home() {
                                         variant="outlined"
                                         size="small"
                                         placeholder="Fecha de finalizacion"
-                                        value={educationData.fechaTermino}
+                                        value={educationData?.fechaTermino}
                                         onChange={(e) => {
                                             setEducationData({ ...educationData, fechaTermino: e.target.value });
                                         }}
@@ -510,9 +641,104 @@ export default function Home() {
                                         variant="outlined"
                                         size="small"
                                         placeholder="Descripcion"
-                                        value={educationData.descripcion}
+                                        value={educationData?.descripcion}
                                         onChange={(e) => {
                                             setEducationData({ ...educationData, descripcion: e.target.value });
+                                        }}
+                                    />
+                                </Box>
+
+                                <Box mt="1rem">
+                                    <Typography sx={{ color: "black", fontSize: "20px", mb: "10px" }}>
+                                        Informacion de contacto:
+                                    </Typography>
+
+                                    <TextField
+                                        sx={{ color: "white", mr: "10px", mb: "10px" }}
+                                        variant="outlined"
+                                        size="small"
+                                        placeholder="Sitio web personal"
+                                        value={informationData?.web}
+                                        onChange={(e) => {
+                                            setInformationData({ ...informationData, web: e.target.value });
+                                        }}
+                                    />
+                                    <TextField
+                                        sx={{ color: "white", mr: "10px" }}
+                                        variant="outlined"
+                                        size="small"
+                                        placeholder="Numero de contacto"
+                                        value={informationData?.numeroContacto}
+                                        onChange={(e) => {
+                                            setInformationData({ ...informationData, numeroContacto: e.target.value });
+                                        }}
+                                    />
+                                    <TextField
+                                        sx={{ color: "white", mr: "10px" }}
+                                        variant="outlined"
+                                        size="small"
+                                        placeholder="Ciudad"
+                                        value={informationData?.ciudad}
+                                        onChange={(e) => {
+                                            setInformationData({ ...informationData, ciudad: e.target.value });
+                                        }}
+                                    />
+                                </Box>
+
+
+                                <Box mt="1rem">
+                                    <Typography sx={{ color: "black", fontSize: "20px", mb: "10px" }}>
+                                        Redes sociales:
+                                    </Typography>
+
+                                    <TextField
+                                        sx={{ color: "white", mr: "10px", mb: "10px" }}
+                                        variant="outlined"
+                                        size="small"
+                                        placeholder="Facebook"
+                                        value={redesData?.facebook}
+                                        onChange={(e) => {
+                                            setRedesData({ ...redesData, facebook: e.target.value });
+                                        }}
+                                    />
+                                    <TextField
+                                        sx={{ color: "white", mr: "10px" }}
+                                        variant="outlined"
+                                        size="small"
+                                        placeholder="LinkedIn"
+                                        value={redesData?.linkedin}
+                                        onChange={(e) => {
+                                            setRedesData({ ...redesData, linkedin: e.target.value });
+                                        }}
+                                    />
+                                    <TextField
+                                        sx={{ color: "white", mr: "10px" }}
+                                        variant="outlined"
+                                        size="small"
+                                        placeholder="Instagram"
+                                        value={redesData?.insta}
+                                        onChange={(e) => {
+                                            setRedesData({ ...redesData, insta: e.target.value });
+                                        }}
+                                    />
+                                    <TextField
+                                        sx={{ color: "white", mr: "10px" }}
+                                        variant="outlined"
+                                        size="small"
+                                        placeholder="Twitter"
+                                        value={redesData?.twitter}
+                                        onChange={(e) => {
+                                            setRedesData({ ...redesData, twitter: e.target.value });
+                                        }}
+                                    />
+                                    <TextField
+                                        sx={{ color: "white", mr: "10px" }}
+                                        variant="outlined"
+                                        size="small"
+                                        placeholder="GitHub"
+                                        value={redesData?.github}
+                                        onChange={(e) => {
+                                            setRedesData({ ...redesData, github: e.target.value });
                                         }}
                                     />
                                 </Box>
